@@ -36,24 +36,18 @@ HEADERS = {
 }
 
 MUSIC_GENRE_LIST = [
-    "African",
-    "Asian",
-    "South and southeast Asian",
-    "Avant-garde",
-    "Blues",
-    "Caribbean and Caribbean-influenced",
-    "Comedy",
-    "Country",
-    "Easy listening",
-    "Electronic",
-    "Folk",
-    "Hip hop",
-    "Jazz",
-    "Latin",
-    "Pop",
-    "R&B and soul",
-    "Rock",
-    "k-pop"
+    "African", "Asian", "South and southeast Asian", "Avant-garde", "Blues",
+    "Caribbean and Caribbean-influenced", "Comedy", "Country", "Easy listening",
+    "Electronic", "Folk", "Hip hop", "Jazz", "Latin", "Pop", "R&B and soul",
+    "Rock", "k-pop", "male vocals", "pop", "electro", "female vocals",
+    "electronic", "beat", "metal", "upbeat", "heavy metal", "synth", "japanese",
+    "guitar", "deep", "rap", "male voice", "flute", "progressive", "dark",
+    "ballad", "melancholic", "indie", "trap", "bass", "groovy", "j-pop",
+    "orchestral", "sad", "piano", "nu metal", "fast", "hard rock", "alternative rock",
+    "psychedelic", "electropop", "grunge", "opera", "powerful", "soul", "r&b", "90s",
+    "house", "emo", "dance", "acoustic", "cantonese", "emotional", "80s", "bounce drop",
+    "chill", "anime", "lo-fi", "electric guitar", "intense", "mellow", "edm", "smooth",
+    "heartfelt", "techno", "funk", "drum", "melodic"
 ]
 
 
@@ -215,7 +209,8 @@ class SongsGen:
             payload["gpt_description_prompt"] = ""
             payload["title"] = title
             if not tags:
-                payload["tags"] = random.choice(MUSIC_GENRE_LIST)
+                selected_genres = random.sample(MUSIC_GENRE_LIST, 3)
+                payload["tags"] = ", ".join(selected_genres)
             else:
                 payload["tags"] = tags
             print(payload)
