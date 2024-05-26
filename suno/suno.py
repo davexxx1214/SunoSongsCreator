@@ -53,6 +53,7 @@ MUSIC_GENRE_LIST = [
     "Pop",
     "R&B and soul",
     "Rock",
+    "k-pop"
 ]
 
 
