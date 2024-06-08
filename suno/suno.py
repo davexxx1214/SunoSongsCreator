@@ -16,6 +16,8 @@ from rich import print
 from typing import Union
 
 from dotenv import load_dotenv, find_dotenv
+from urllib.parse import urlparse, parse_qs
+
 
 _ = load_dotenv(find_dotenv())
 
@@ -150,14 +152,18 @@ class SongsGen:
                 self.song_info_dict["song_url"] = (
                     f"https://audiopipe.suno.ai/?item_id={id1}"
                 )
+                self.song_info_dict["video_url"] = (
+                    f"https://cdn1.suno.ai/{id1}.mp4"
+                )
                 print("Token expired, will sleep 30 seconds and try to download")
                 time.sleep(30)
-                # Done here
                 return True
             else:
                 data = [data]
         # renew now data
         self.now_data = data
+        self.song_info_dict["song_url_list"] = []
+        self.song_info_dict["video_url_list"] = []
         try:
             if all(d.get("audio_url") for d in data):
                 for d in data:
@@ -167,6 +173,12 @@ class SongsGen:
                     self.song_info_dict["song_url_list"].append(d.get("audio_url"))
                     # for support old api
                     self.song_info_dict["song_url"] = d.get("audio_url")
+
+                # 处理video_url，这里简化逻辑，直接用id1和id2生成
+                self.song_info_dict["video_url_list"].append(f"https://cdn1.suno.ai/{id1}.mp4")
+                self.song_info_dict["video_url_list"].append(f"https://cdn1.suno.ai/{id2}.mp4")
+                # 假设只有一个数据时使用id1
+                self.song_info_dict["video_url"] = f"https://cdn1.suno.ai/{id1}.mp4"
                 return True
             return False
         except Exception as e:
@@ -185,8 +197,14 @@ class SongsGen:
             self.song_info_dict["song_url"] = (
                 f"https://audiopipe.suno.ai/?item_id={id1}"
             )
+            self.song_info_dict["video_url_list"] = [
+                f"https://cdn1.suno.ai/{id1}.mp4",
+                f"https://cdn1.suno.ai/{id2}.mp4"
+            ]
+            self.song_info_dict["video_url"] = f"https://cdn1.suno.ai/{id1}.mp4"
             # Done here
             return True
+
 
     def get_songs(
         self,
@@ -248,27 +266,29 @@ class SongsGen:
         # keep the song info dict as old api
         return self.song_info_dict
 
-    def _download_suno_song(self, link: str, song_id: str, output_dir: str) -> None:
+    def _download_suno_song(self, link: str, song_id: str, output_dir: str, file_type: str = "mp3") -> None:
         song_name = self.song_info_dict["song_name"]
         lyric = self.song_info_dict["lyric"]
         response = rget(link, allow_redirects=False, stream=True)
         if response.status_code != 200:
             raise Exception("Could not download song")
-        # save response to file
-        print(f"Downloading song... {song_id}")
-        with open(os.path.join(output_dir, f"suno_{song_id}.mp3"), "wb") as output_file:
+        # Determine the file extension based on the type
+        file_extension = "mp3" if file_type == "mp3" else "mp4"
+        print(f"Downloading {file_type}... {song_id}")
+        with open(os.path.join(output_dir, f"suno_{song_id}.{file_extension}"), "wb") as output_file:
             for chunk in response.iter_content(chunk_size=1024):
-                # If the chunk is not empty, write it to the file.
-                if chunk:
+                if chunk:  # If the chunk is not empty, write it to the file.
                     output_file.write(chunk)
         if not song_name:
             song_name = "Untitled"
-        with open(
-            os.path.join(output_dir, f"{song_name.replace(' ', '_')}.lrc"),
-            "w",
-            encoding="utf-8",
-        ) as lyric_file:
-            lyric_file.write(f"{song_name}\n\n{lyric}")
+        if file_type == "mp3":  # Lyrics files are only relevant for songs
+            with open(
+                os.path.join(output_dir, f"{song_name.replace(' ', '_')}.lrc"),
+                "w",
+                encoding="utf-8",
+            ) as lyric_file:
+                lyric_file.write(f"{song_name}\n\n{lyric}")
+
 
     def save_songs(
         self,
@@ -287,20 +307,28 @@ class SongsGen:
                 is_custom=is_custom,
                 make_instrumental=make_instrumental,
             )  # make the info dict
-            link_list = self.song_info_dict["song_url_list"]
+            audio_link_list = self.song_info_dict.get("song_url_list", [])
+            video_link_list = self.song_info_dict.get("video_url_list", [])
         except Exception as e:
             print(e)
             raise
         with contextlib.suppress(FileExistsError):
             os.mkdir(output_dir)
         print()
-        print(link_list)
-        for link in link_list:
-            if link.endswith(".mp3"):
-                mp3_id = link.split("/")[-1][:-4]
-            else:
-                mp3_id = link.split("=")[-1]
-            self._download_suno_song(link, mp3_id, output_dir)
+        # Download audio files
+        for link in audio_link_list:
+            # 特别处理audio_url，提取item_id
+            query_string = urlparse(link).query
+            query_params = parse_qs(query_string)
+            item_id = query_params.get('item_id', [''])[0]  # Default to empty string if not found
+            if item_id:
+                self._download_suno_song(link, item_id, output_dir, "mp3")
+        # Download video files
+        for link in video_link_list:
+            # 直接从URL的路径中提取video_id
+            file_id = link.split("/")[-1].split(".")[0]
+            self._download_suno_song(link, file_id, output_dir, "mp4")
+
 
 
 def main():
