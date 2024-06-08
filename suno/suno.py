@@ -271,7 +271,9 @@ class SongsGen:
         lyric = self.song_info_dict["lyric"]
         response = rget(link, allow_redirects=False, stream=True)
         if response.status_code != 200:
-            raise Exception("Could not download song")
+            print(f"Could not download song on {link}")
+            return
+        
         # Determine the file extension based on the type
         file_extension = "mp3" if file_type == "mp3" else "mp4"
         print(f"Downloading {file_type}... {song_id}")
