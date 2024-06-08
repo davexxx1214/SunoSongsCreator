@@ -269,7 +269,7 @@ class SongsGen:
     def _download_suno_song(self, link: str, song_id: str, output_dir: str, file_type: str = "mp3") -> None:
         song_name = self.song_info_dict["song_name"]
         lyric = self.song_info_dict["lyric"]
-        max_retries = 20
+        max_retries = 30
         retry_count = 0
         success = False
 
